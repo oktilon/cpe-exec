@@ -6,4 +6,5 @@ option('db_pass', type : 'string', value : 'test', description: 'MariaDB server 
 option('scripts_path', type : 'string', value : '/usr/bin/', description: 'Scripts path')
 option('tg_key', type : 'string', value : '', description: 'Telegram Bot API key')
 option('tg_chat', type : 'string', value : '', description: 'Telegram Chat Id for reporting')
+option('php_log', type : 'string', value : '/var/log/php.log', description: 'PHP error log')
 option('user', type : 'string', value : 'user', description: 'Current user')
