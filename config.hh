@@ -22,4 +22,6 @@
 // File locations
 #define LOG_FILENAME        "@log_file@"
 #define SCRIPTS_PATH        "@path@"
+#define GIT_PATH            "@git_path@"
+#define OUT_PATH            "@out_path@"
 #define PHP_LOG             "@php_log@"
