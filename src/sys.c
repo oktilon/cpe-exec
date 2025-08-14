@@ -152,7 +152,7 @@ int sys_export(uint32_t chat, uint32_t *orders, int count) {
     int r, cnt;
     pthread_t th;
     char arg[TAIL_CMD_SZ] = {0};
-    execStruct es;
+    static execStruct es;
 
     snprintf(arg, TAIL_CMD_SZ, "%s/export.pretty.json", OUT_PATH);
     unlink(arg);
