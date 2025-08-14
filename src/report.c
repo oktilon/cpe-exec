@@ -34,6 +34,9 @@ typedef struct ReportDataS {
     uint32_t responseTo;
 } ReportData;
 
+
+const char *codename(CURLcode code);
+
 static size_t report_write_chunk (unsigned char *ptr, size_t size, size_t nmemb, void *data) {
     ResponseData *cd = (ResponseData *) (data);
     size_t ret = 0;
