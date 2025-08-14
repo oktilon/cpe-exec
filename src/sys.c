@@ -32,6 +32,7 @@ static void* exec_thread(void *pData) {
     logTrc("exec: %s", pStr->title);
     logTrc("path: %s", pStr->path);
     logTrc("chat: %u", pStr->chat);
+    logTrc("link: %p", pData);
 
     if(system(pStr->path) < 0) {
         snprintf(msg, MSG_SZ, "🛑 Execute %s error(%d): %m", pStr->title, errno);
@@ -167,6 +168,11 @@ int sys_export(uint32_t chat, uint32_t *orders, int count) {
     }
     cnt += snprintf(arg, TAIL_CMD_SZ, " > %s/export.log", OUT_PATH);
     strcat(es.path, arg);
+
+    logTrc("exec: %s", es.title);
+    logTrc("path: %s", es.path);
+    logTrc("chat: %u", es.chat);
+    logTrc("link: %p", &es);
 
     r = pthread_create(&th, NULL, exec_thread, &es);
     if (r != 0) {
