@@ -29,6 +29,9 @@ typedef struct tgDataS {
 static void* exec_thread(void *pData) {
     static char msg[MSG_SZ];
     execStruct *pStr = (execStruct*)pData;
+    logTrc("exec: %s", pStr->title);
+    logTrc("path: %s", pStr->path);
+    logTrc("chat: %u", pStr->chat);
 
     if(system(pStr->path) < 0) {
         snprintf(msg, MSG_SZ, "🛑 Execute %s error(%d): %m", pStr->title, errno);
