@@ -299,7 +299,8 @@ const char *codename(CURLcode code) {
         case CURLE_OBSOLETE46: return "CURLE_OBSOLETE46"; break;
         case CURLE_TOO_MANY_REDIRECTS: return "CURLE_TOO_MANY_REDIRECTS"; break;
         case CURLE_UNKNOWN_OPTION: return "CURLE_UNKNOWN_OPTION"; break;
-        case CURLE_SETOPT_OPTION_SYNTAX: return "CURLE_SETOPT_OPTION_SYNTAX"; break;
+        case CURLE_TELNET_OPTION_SYNTAX: return "CURLE_SETOPT_OPTION_SYNTAX"; break;
+        // case CURLE_SETOPT_OPTION_SYNTAX: return "CURLE_SETOPT_OPTION_SYNTAX"; break;
         case CURLE_OBSOLETE50: return "CURLE_OBSOLETE50"; break;
         case CURLE_OBSOLETE51: return "CURLE_OBSOLETE51"; break;
         case CURLE_GOT_NOTHING: return "CURLE_GOT_NOTHING"; break;
@@ -312,7 +313,7 @@ const char *codename(CURLcode code) {
         case CURLE_SSL_CIPHER: return "CURLE_SSL_CIPHER"; break;
         case CURLE_PEER_FAILED_VERIFICATION: return "CURLE_PEER_FAILED_VERIFICATION"; break;
         case CURLE_BAD_CONTENT_ENCODING: return "CURLE_BAD_CONTENT_ENCODING"; break;
-        case CURLE_OBSOLETE62: return "CURLE_OBSOLETE62"; break;
+        // case CURLE_OBSOLETE62: return "CURLE_OBSOLETE62"; break;
         case CURLE_FILESIZE_EXCEEDED: return "CURLE_FILESIZE_EXCEEDED"; break;
         case CURLE_USE_SSL_FAILED: return "CURLE_USE_SSL_FAILED"; break;
         case CURLE_SEND_FAIL_REWIND: return "CURLE_SEND_FAIL_REWIND"; break;
@@ -325,8 +326,8 @@ const char *codename(CURLcode code) {
         case CURLE_TFTP_UNKNOWNID: return "CURLE_TFTP_UNKNOWNID"; break;
         case CURLE_REMOTE_FILE_EXISTS: return "CURLE_REMOTE_FILE_EXISTS"; break;
         case CURLE_TFTP_NOSUCHUSER: return "CURLE_TFTP_NOSUCHUSER"; break;
-        case CURLE_OBSOLETE75: return "CURLE_OBSOLETE75"; break;
-        case CURLE_OBSOLETE76: return "CURLE_OBSOLETE76"; break;
+        // case CURLE_OBSOLETE75: return "CURLE_OBSOLETE75"; break;
+        // case CURLE_OBSOLETE76: return "CURLE_OBSOLETE76"; break;
         case CURLE_SSL_CACERT_BADFILE: return "CURLE_SSL_CACERT_BADFILE"; break;
         case CURLE_REMOTE_FILE_NOT_FOUND: return "CURLE_REMOTE_FILE_NOT_FOUND"; break;
         case CURLE_SSH: return "CURLE_SSH"; break;
@@ -348,8 +349,8 @@ const char *codename(CURLcode code) {
         case CURLE_HTTP3: return "CURLE_HTTP3"; break;
         case CURLE_QUIC_CONNECT_ERROR: return "CURLE_QUIC_CONNECT_ERROR"; break;
         case CURLE_PROXY: return "CURLE_PROXY"; break;
-        case CURLE_SSL_CLIENTCERT: return "CURLE_SSL_CLIENTCERT"; break;
-        case CURLE_UNRECOVERABLE_POLL: return "CURLE_UNRECOVERABLE_POLL"; break;
+        // case CURLE_SSL_CLIENTCERT: return "CURLE_SSL_CLIENTCERT"; break;
+        // case CURLE_UNRECOVERABLE_POLL: return "CURLE_UNRECOVERABLE_POLL"; break;
         default: break;
     }
     return "<unknown>";
