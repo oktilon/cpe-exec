@@ -79,13 +79,14 @@ static void * report_query (void *ptr) {
     }
     const char *post = json_dumps(data, JSON_COMPACT);
     int sz = strlen(post);
-    logTrc("TG: %s", post);
 
     struct curl_slist *slist = NULL;
     slist = curl_slist_append(slist, "Content-type: application/json; charset=utf8");
 
     if (rd->mode == Document) {
         snprintf(url, URL_SIZE, "%s%s/sendDocument?chat_id=%u", API_URL, API_KEY, rd->chatId);
+        logTrc("TG_DOC: %s", url);
+
         curl = curl_easy_init();
         multi_handle = curl_multi_init();
         if (curl && multi_handle) {
@@ -112,7 +113,7 @@ static void * report_query (void *ptr) {
 
             curl_easy_setopt(curl, CURLOPT_URL, url);
             curl_easy_setopt(curl, CURLOPT_HEADER, 0);
-            curl_easy_setopt(curl, CURLOPT_MIMEPOST, post);
+            curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &cd);
@@ -146,6 +147,7 @@ static void * report_query (void *ptr) {
             //
         }
     } else {
+        logTrc("TG: %s", post);
         snprintf(url, URL_SIZE, "%s%s/sendMessage", API_URL, API_KEY);
         curl = curl_easy_init();
         if(curl) {
