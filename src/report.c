@@ -89,12 +89,16 @@ static void * report_query (void *ptr) {
             form = curl_mime_init(curl);
 
             field = curl_mime_addpart(form);
-            curl_mime_name(field, "document");
-            curl_mime_filedata(field, rd->doc);
+            ret = curl_mime_name(field, "document");
+            logTrc("document %s %s", codename(ret), curl_easy_strerror(ret));
+            ret = curl_mime_filedata(field, rd->doc);
+            logTrc("filedata %s %s", codename(ret), curl_easy_strerror(ret));
 
             field = curl_mime_addpart(form);
-            curl_mime_name(field, "caption");
-            curl_mime_data(field, rd->msg, CURL_ZERO_TERMINATED);
+            ret = curl_mime_name(field, "caption");
+            logTrc("caption %s %s", codename(ret), curl_easy_strerror(ret));
+            ret = curl_mime_data(field, rd->msg, CURL_ZERO_TERMINATED);
+            logTrc("data %s %s", codename(ret), curl_easy_strerror(ret));
 
             if(rd->responseTo) {
                 char par[64];
@@ -153,7 +157,7 @@ static void * report_query (void *ptr) {
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, report_write_chunk);
 
             ret = curl_easy_perform(curl);
-            logTrc ("CURL ret = %d [chunks=%d, size=%ld]", ret, cd.cnt, cd.size);
+            logTrc ("CURL ret = %d (%s) [chunks=%d, size=%ld]", ret, codename(ret), cd.cnt, cd.size);
             logTrc (cd.buf);
 
             /* always cleanup */
@@ -239,4 +243,111 @@ int send_document(uint32_t chat, char *path, char *caption, uint32_t responseTo)
         return $mid;
     }
 */
+}
+
+const char *codename(CURLcode code) {
+    switch(code) {
+        case CURLE_OK: return "CURLE_OK"; break;
+        case CURLE_UNSUPPORTED_PROTOCOL: return "CURLE_UNSUPPORTED_PROTOCOL"; break;
+        case CURLE_FAILED_INIT: return "CURLE_FAILED_INIT"; break;
+        case CURLE_URL_MALFORMAT: return "CURLE_URL_MALFORMAT"; break;
+        case CURLE_NOT_BUILT_IN: return "CURLE_NOT_BUILT_IN"; break;
+        case CURLE_COULDNT_RESOLVE_PROXY: return "CURLE_COULDNT_RESOLVE_PROXY"; break;
+        case CURLE_COULDNT_RESOLVE_HOST: return "CURLE_COULDNT_RESOLVE_HOST"; break;
+        case CURLE_COULDNT_CONNECT: return "CURLE_COULDNT_CONNECT"; break;
+        case CURLE_WEIRD_SERVER_REPLY: return "CURLE_WEIRD_SERVER_REPLY"; break;
+        case CURLE_REMOTE_ACCESS_DENIED: return "CURLE_REMOTE_ACCESS_DENIED"; break;
+        case CURLE_FTP_ACCEPT_FAILED: return "CURLE_FTP_ACCEPT_FAILED"; break;
+        case CURLE_FTP_WEIRD_PASS_REPLY: return "CURLE_FTP_WEIRD_PASS_REPLY"; break;
+        case CURLE_FTP_ACCEPT_TIMEOUT: return "CURLE_FTP_ACCEPT_TIMEOUT"; break;
+        case CURLE_FTP_WEIRD_PASV_REPLY: return "CURLE_FTP_WEIRD_PASV_REPLY"; break;
+        case CURLE_FTP_WEIRD_227_FORMAT: return "CURLE_FTP_WEIRD_227_FORMAT"; break;
+        case CURLE_FTP_CANT_GET_HOST: return "CURLE_FTP_CANT_GET_HOST"; break;
+        case CURLE_HTTP2: return "CURLE_HTTP2"; break;
+        case CURLE_FTP_COULDNT_SET_TYPE: return "CURLE_FTP_COULDNT_SET_TYPE"; break;
+        case CURLE_PARTIAL_FILE: return "CURLE_PARTIAL_FILE"; break;
+        case CURLE_FTP_COULDNT_RETR_FILE: return "CURLE_FTP_COULDNT_RETR_FILE"; break;
+        case CURLE_OBSOLETE20: return "CURLE_OBSOLETE20"; break;
+        case CURLE_QUOTE_ERROR: return "CURLE_QUOTE_ERROR"; break;
+        case CURLE_HTTP_RETURNED_ERROR: return "CURLE_HTTP_RETURNED_ERROR"; break;
+        case CURLE_WRITE_ERROR: return "CURLE_WRITE_ERROR"; break;
+        case CURLE_OBSOLETE24: return "CURLE_OBSOLETE24"; break;
+        case CURLE_UPLOAD_FAILED: return "CURLE_UPLOAD_FAILED"; break;
+        case CURLE_READ_ERROR: return "CURLE_READ_ERROR"; break;
+        case CURLE_OUT_OF_MEMORY: return "CURLE_OUT_OF_MEMORY"; break;
+        case CURLE_OPERATION_TIMEDOUT: return "CURLE_OPERATION_TIMEDOUT"; break;
+        case CURLE_OBSOLETE29: return "CURLE_OBSOLETE29"; break;
+        case CURLE_FTP_PORT_FAILED: return "CURLE_FTP_PORT_FAILED"; break;
+        case CURLE_FTP_COULDNT_USE_REST: return "CURLE_FTP_COULDNT_USE_REST"; break;
+        case CURLE_OBSOLETE32: return "CURLE_OBSOLETE32"; break;
+        case CURLE_RANGE_ERROR: return "CURLE_RANGE_ERROR"; break;
+        case CURLE_HTTP_POST_ERROR: return "CURLE_HTTP_POST_ERROR"; break;
+        case CURLE_SSL_CONNECT_ERROR: return "CURLE_SSL_CONNECT_ERROR"; break;
+        case CURLE_BAD_DOWNLOAD_RESUME: return "CURLE_BAD_DOWNLOAD_RESUME"; break;
+        case CURLE_FILE_COULDNT_READ_FILE: return "CURLE_FILE_COULDNT_READ_FILE"; break;
+        case CURLE_LDAP_CANNOT_BIND: return "CURLE_LDAP_CANNOT_BIND"; break;
+        case CURLE_LDAP_SEARCH_FAILED: return "CURLE_LDAP_SEARCH_FAILED"; break;
+        case CURLE_OBSOLETE40: return "CURLE_OBSOLETE40"; break;
+        case CURLE_FUNCTION_NOT_FOUND: return "CURLE_FUNCTION_NOT_FOUND"; break;
+        case CURLE_ABORTED_BY_CALLBACK: return "CURLE_ABORTED_BY_CALLBACK"; break;
+        case CURLE_BAD_FUNCTION_ARGUMENT: return "CURLE_BAD_FUNCTION_ARGUMENT"; break;
+        case CURLE_OBSOLETE44: return "CURLE_OBSOLETE44"; break;
+        case CURLE_INTERFACE_FAILED: return "CURLE_INTERFACE_FAILED"; break;
+        case CURLE_OBSOLETE46: return "CURLE_OBSOLETE46"; break;
+        case CURLE_TOO_MANY_REDIRECTS: return "CURLE_TOO_MANY_REDIRECTS"; break;
+        case CURLE_UNKNOWN_OPTION: return "CURLE_UNKNOWN_OPTION"; break;
+        case CURLE_SETOPT_OPTION_SYNTAX: return "CURLE_SETOPT_OPTION_SYNTAX"; break;
+        case CURLE_OBSOLETE50: return "CURLE_OBSOLETE50"; break;
+        case CURLE_OBSOLETE51: return "CURLE_OBSOLETE51"; break;
+        case CURLE_GOT_NOTHING: return "CURLE_GOT_NOTHING"; break;
+        case CURLE_SSL_ENGINE_NOTFOUND: return "CURLE_SSL_ENGINE_NOTFOUND"; break;
+        case CURLE_SSL_ENGINE_SETFAILED: return "CURLE_SSL_ENGINE_SETFAILED"; break;
+        case CURLE_SEND_ERROR: return "CURLE_SEND_ERROR"; break;
+        case CURLE_RECV_ERROR: return "CURLE_RECV_ERROR"; break;
+        case CURLE_OBSOLETE57: return "CURLE_OBSOLETE57"; break;
+        case CURLE_SSL_CERTPROBLEM: return "CURLE_SSL_CERTPROBLEM"; break;
+        case CURLE_SSL_CIPHER: return "CURLE_SSL_CIPHER"; break;
+        case CURLE_PEER_FAILED_VERIFICATION: return "CURLE_PEER_FAILED_VERIFICATION"; break;
+        case CURLE_BAD_CONTENT_ENCODING: return "CURLE_BAD_CONTENT_ENCODING"; break;
+        case CURLE_OBSOLETE62: return "CURLE_OBSOLETE62"; break;
+        case CURLE_FILESIZE_EXCEEDED: return "CURLE_FILESIZE_EXCEEDED"; break;
+        case CURLE_USE_SSL_FAILED: return "CURLE_USE_SSL_FAILED"; break;
+        case CURLE_SEND_FAIL_REWIND: return "CURLE_SEND_FAIL_REWIND"; break;
+        case CURLE_SSL_ENGINE_INITFAILED: return "CURLE_SSL_ENGINE_INITFAILED"; break;
+        case CURLE_LOGIN_DENIED: return "CURLE_LOGIN_DENIED"; break;
+        case CURLE_TFTP_NOTFOUND: return "CURLE_TFTP_NOTFOUND"; break;
+        case CURLE_TFTP_PERM: return "CURLE_TFTP_PERM"; break;
+        case CURLE_REMOTE_DISK_FULL: return "CURLE_REMOTE_DISK_FULL"; break;
+        case CURLE_TFTP_ILLEGAL: return "CURLE_TFTP_ILLEGAL"; break;
+        case CURLE_TFTP_UNKNOWNID: return "CURLE_TFTP_UNKNOWNID"; break;
+        case CURLE_REMOTE_FILE_EXISTS: return "CURLE_REMOTE_FILE_EXISTS"; break;
+        case CURLE_TFTP_NOSUCHUSER: return "CURLE_TFTP_NOSUCHUSER"; break;
+        case CURLE_OBSOLETE75: return "CURLE_OBSOLETE75"; break;
+        case CURLE_OBSOLETE76: return "CURLE_OBSOLETE76"; break;
+        case CURLE_SSL_CACERT_BADFILE: return "CURLE_SSL_CACERT_BADFILE"; break;
+        case CURLE_REMOTE_FILE_NOT_FOUND: return "CURLE_REMOTE_FILE_NOT_FOUND"; break;
+        case CURLE_SSH: return "CURLE_SSH"; break;
+        case CURLE_SSL_SHUTDOWN_FAILED: return "CURLE_SSL_SHUTDOWN_FAILED"; break;
+        case CURLE_AGAIN: return "CURLE_AGAIN"; break;
+        case CURLE_SSL_CRL_BADFILE: return "CURLE_SSL_CRL_BADFILE"; break;
+        case CURLE_SSL_ISSUER_ERROR: return "CURLE_SSL_ISSUER_ERROR"; break;
+        case CURLE_FTP_PRET_FAILED: return "CURLE_FTP_PRET_FAILED"; break;
+        case CURLE_RTSP_CSEQ_ERROR: return "CURLE_RTSP_CSEQ_ERROR"; break;
+        case CURLE_RTSP_SESSION_ERROR: return "CURLE_RTSP_SESSION_ERROR"; break;
+        case CURLE_FTP_BAD_FILE_LIST: return "CURLE_FTP_BAD_FILE_LIST"; break;
+        case CURLE_CHUNK_FAILED: return "CURLE_CHUNK_FAILED"; break;
+        case CURLE_NO_CONNECTION_AVAILABLE: return "CURLE_NO_CONNECTION_AVAILABLE"; break;
+        case CURLE_SSL_PINNEDPUBKEYNOTMATCH: return "CURLE_SSL_PINNEDPUBKEYNOTMATCH"; break;
+        case CURLE_SSL_INVALIDCERTSTATUS: return "CURLE_SSL_INVALIDCERTSTATUS"; break;
+        case CURLE_HTTP2_STREAM: return "CURLE_HTTP2_STREAM"; break;
+        case CURLE_RECURSIVE_API_CALL: return "CURLE_RECURSIVE_API_CALL"; break;
+        case CURLE_AUTH_ERROR: return "CURLE_AUTH_ERROR"; break;
+        case CURLE_HTTP3: return "CURLE_HTTP3"; break;
+        case CURLE_QUIC_CONNECT_ERROR: return "CURLE_QUIC_CONNECT_ERROR"; break;
+        case CURLE_PROXY: return "CURLE_PROXY"; break;
+        case CURLE_SSL_CLIENTCERT: return "CURLE_SSL_CLIENTCERT"; break;
+        case CURLE_UNRECOVERABLE_POLL: return "CURLE_UNRECOVERABLE_POLL"; break;
+        default: break;
+    }
+    return "<unknown>";
 }
