@@ -15,11 +15,15 @@
 #include "report.h"
 #include "sys.h"
 
+#define ExecDoc     0x1
 
 typedef struct execStructS {
     uint32_t chat;
-    char title[8];
+    uint32_t respTo;
+    uint8_t flag;
+    char title[64];
     char path[EXEC_PATH_SZ];
+    char doc[EXEC_PATH_SZ];
 } execStruct;
 
 typedef struct tgDataS {
@@ -29,18 +33,20 @@ typedef struct tgDataS {
 static void* exec_thread(void *pData) {
     static char msg[MSG_SZ];
     execStruct *pStr = (execStruct*)pData;
-    logTrc("exec: %s", pStr->title);
-    logTrc("path: %s", pStr->path);
-    logTrc("chat: %u", pStr->chat);
-    logTrc("link: %p", pData);
 
     if(system(pStr->path) < 0) {
         snprintf(msg, MSG_SZ, "🛑 Execute %s error(%d): %m", pStr->title, errno);
         logErr(msg);
-        send_report(pStr->chat, msg, 0);
+        send_report(pStr->chat, msg, pStr->respTo);
     }
-    snprintf(msg, MSG_SZ, "✅ Execute %s done", pStr->title);
-    send_report(pStr->chat, msg, 0);
+    if (pStr->flag & ExecDoc) {
+        send_document(pStr->chat, pStr->doc, pStr->title, pStr->respTo);
+    } else {
+        snprintf(msg, MSG_SZ, "✅ Execute %s done", pStr->title);
+        send_report(pStr->chat, msg, pStr->respTo);
+    }
+
+    free(pData);
     return NULL;
 }
 
@@ -78,21 +84,21 @@ static void do_pull(tgData *pTg) {
 int sys_run_command(char *cmd, uint32_t chat) {
     int r;
     pthread_t th;
-    execStruct es;
+    execStruct *es = calloc(1, sizeof(execStruct));
 
-    es.chat = chat;
+    es->chat = chat;
     if(strcmp(cmd, "geos") == 0) {
-        sprintf(es.title, "geos");
-        snprintf(es.path, EXEC_PATH_SZ, "%s/load/gps_resources.php > %s/gps_resources.log", SCRIPTS_PATH, OUT_PATH);
-        r = pthread_create(&th, NULL, exec_thread, &es);
+        sprintf(es->title, "geos");
+        snprintf(es->path, EXEC_PATH_SZ, "%s/load/gps_resources.php > %s/gps_resources.log", SCRIPTS_PATH, OUT_PATH);
+        r = pthread_create(&th, NULL, exec_thread, es);
         if (r != 0) {
             logErr("GeoFences thread creation failed(%d): %s", r, strerror(abs(r)));
             return 0;
         }
     } else if(strcmp(cmd, "cars") == 0) {
-        sprintf(es.title, "cars");
-        snprintf(es.path, EXEC_PATH_SZ, "%s/load/gps_items.php > %s/gps_items.log", SCRIPTS_PATH, OUT_PATH);
-        r = pthread_create(&th, NULL, exec_thread, &es);
+        sprintf(es->title, "cars");
+        snprintf(es->path, EXEC_PATH_SZ, "%s/load/gps_items.php > %s/gps_items.log", SCRIPTS_PATH, OUT_PATH);
+        r = pthread_create(&th, NULL, exec_thread, es);
         if (r != 0) {
             logErr("Cars thread creation failed(%d): %s", r, strerror(abs(r)));
             return 0;
@@ -149,56 +155,50 @@ int sys_pull(uint32_t chat) {
 }
 
 int sys_export(uint32_t chat, uint32_t *orders, int count) {
-    int r, cnt;
+    int r, i, cnt = 0;
     pthread_t th;
-    char arg[TAIL_CMD_SZ] = {0};
-    static execStruct es;
+    char arg[EXEC_PATH_SZ] = {0};
+    execStruct *es;
 
-    snprintf(arg, TAIL_CMD_SZ, "%s/export.pretty.json", OUT_PATH);
+    snprintf(arg, EXEC_PATH_SZ, "%s/export.json", OUT_PATH);
     unlink(arg);
-    snprintf(arg, TAIL_CMD_SZ, "%s/export.json", OUT_PATH);
+    snprintf(arg, EXEC_PATH_SZ, "%s/export.pretty.json", OUT_PATH);
     unlink(arg);
 
-    es.chat = chat;
-    sprintf(es.title, "export");
-    cnt = snprintf(es.path, EXEC_PATH_SZ, "%s/export/export_orders.php %s/export -o", SCRIPTS_PATH, OUT_PATH);
-    for(r = 0; r < count; r++) {
-        cnt += snprintf(arg, TAIL_CMD_SZ, " %u", orders[r]);
-        strcat(es.path, arg);
+    for(i = 0; i < count; i++) {
+        es = calloc(1, sizeof(execStruct));
+        es->chat = chat;
+        es->flag = ExecDoc;
+        sprintf(es->title, "export_%u", orders[i]);
+        snprintf(es->path, EXEC_PATH_SZ, "%s/export/export_orders.php %s/export -o %u", SCRIPTS_PATH, OUT_PATH, orders[i]);
+        strcpy(es->doc, arg);
+        r = pthread_create(&th, NULL, exec_thread, es);
+        if (r != 0) {
+            logErr("Export[%u] thread creation failed(%d): %s", orders[i], r, strerror(abs(r)));
+        } else {
+            cnt++;
+        }
     }
-    cnt += snprintf(arg, TAIL_CMD_SZ, " > %s/export.log", OUT_PATH);
-    strcat(es.path, arg);
-
-    logTrc("exec: %s", es.title);
-    logTrc("path: %s", es.path);
-    logTrc("chat: %u", es.chat);
-    logTrc("link: %p", &es);
-
-    r = pthread_create(&th, NULL, exec_thread, &es);
-    if (r != 0) {
-        logErr("Export thread creation failed(%d): %s", r, strerror(abs(r)));
-        return 0;
-    }
-    return (int)th;
+    return cnt;
 }
 
 int sys_clear(uint32_t chat, uint32_t *orders, int count) {
     int r, cnt;
     pthread_t th;
     char arg[TAIL_CMD_SZ] = {0};
-    execStruct es;
+    execStruct *es = calloc(1, sizeof(execStruct));
 
-    es.chat = chat;
-    sprintf(es.title, "clear");
-    cnt = snprintf(es.path, EXEC_PATH_SZ, "%s/check/m_clean_orders.php -o", SCRIPTS_PATH);
+    es->chat = chat;
+    sprintf(es->title, "clear");
+    cnt = snprintf(es->path, EXEC_PATH_SZ, "%s/check/m_clean_orders.php -o", SCRIPTS_PATH);
     for(r = 0; r < count; r++) {
         cnt += snprintf(arg, TAIL_CMD_SZ, " %u", orders[r]);
-        strcat(es.path, arg);
+        strcat(es->path, arg);
     }
     cnt += snprintf(arg, TAIL_CMD_SZ, " > %s/clear.log", OUT_PATH);
-    strcat(es.path, arg);
+    strcat(es->path, arg);
 
-    r = pthread_create(&th, NULL, exec_thread, &es);
+    r = pthread_create(&th, NULL, exec_thread, es);
     if (r != 0) {
         logErr("GeoFences thread creation failed(%d): %s", r, strerror(abs(r)));
         return 0;
