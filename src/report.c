@@ -1,7 +1,4 @@
 #include <curl/curl.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <jansson.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -53,12 +50,14 @@ static size_t report_write_chunk (unsigned char *ptr, size_t size, size_t nmemb,
 
 static void * report_query (void *ptr) {
     CURL *curl;
+    CURLM *multi_handle;
+    curl_mime *form = NULL;
+    curl_mimepart *field = NULL;
+    int still_running = 0;
     CURLcode ret;
     ReportData *rd = (ReportData *) (ptr);
     ResponseData cd = {0};
     char url[URL_SIZE + 1] = {0};
-    FILE *fd = NULL;
-    struct stat file_info;
     json_t *data = json_object(), *mode;
     switch(rd->mode) {
         case Markdown: mode = json_string("Markdown"); break;
@@ -67,21 +66,9 @@ static void * report_query (void *ptr) {
         default: mode = json_string("Markdown"); break;
     }
     json_object_set_new(data, "chat_id", json_integer(rd->chatId));
-    if (rd->mode == Document) {
-        fd = fopen(rd->doc, "rb");
-        if (fd) {
-            if(fstat(fileno(fd), &file_info) != 0) {
-                logErr("Can't stat file[%s]", rd->doc);
-                fclose(fd);
-                fd = NULL;
-            }
-        } else {
-            logErr("Cant open doc[%s]", rd->doc);
-        }
-    } else {
-        json_object_set_new(data, "text", json_string(rd->msg));
-        json_object_set_new(data, "parse_mode", mode);
-    }
+    json_object_set_new(data, "text", json_string(rd->msg));
+    json_object_set_new(data, "parse_mode", mode);
+
     if(rd->responseTo) {
         json_t *reply = json_object();
         json_object_set_new(reply, "message_id", json_integer(rd->responseTo));
@@ -91,38 +78,86 @@ static void * report_query (void *ptr) {
     int sz = strlen(post);
     logTrc("TG: %s", post);
 
-    snprintf(url, URL_SIZE, "%s%s/sendMessage", API_URL, API_KEY);
-
     struct curl_slist *slist = NULL;
     slist = curl_slist_append(slist, "Content-type: application/json; charset=utf8");
 
-    curl = curl_easy_init();
-    if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_HEADER, 0);
-        curl_easy_setopt(curl, CURLOPT_POST, 1);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, sz);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &cd);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, report_write_chunk);
-        if (fd) {
-            logTrc("Upload file %p sz:%lu", fd, file_info.st_size);
-            curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-            curl_easy_setopt(curl, CURLOPT_READDATA, fd);
-            curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
+    if (rd->mode == Document) {
+        snprintf(url, URL_SIZE, "%s%s/sendDocument?chat_id=%u", API_URL, API_KEY, rd->chatId);
+        curl = curl_easy_init();
+        multi_handle = curl_multi_init();
+        if (curl && multi_handle) {
+            form = curl_mime_init(curl);
+
+            field = curl_mime_addpart(form);
+            curl_mime_name(field, "document");
+            curl_mime_filedata(field, rd->doc);
+
+            field = curl_mime_addpart(form);
+            curl_mime_name(field, "caption");
+            curl_mime_data(field, rd->msg, CURL_ZERO_TERMINATED);
+
+            if(rd->responseTo) {
+                char par[64];
+                sprintf(par, "{\"message_id\":%u}", rd->responseTo);
+                curl_mime_name(field, "reply_parameters");
+                curl_mime_data(field, par, CURL_ZERO_TERMINATED);
+            }
+
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_HEADER, 0);
+            curl_easy_setopt(curl, CURLOPT_MIMEPOST, post);
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &cd);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, report_write_chunk);
+
+            curl_multi_add_handle(multi_handle, curl);
+
+            do {
+                CURLMcode mc = curl_multi_perform(multi_handle, &still_running);
+
+                if(still_running)
+                    /* wait for activity, timeout or "nothing" */
+                    mc = curl_multi_poll(multi_handle, NULL, 0, 1000, NULL);
+                if(mc)
+                    break;
+            } while(still_running);
+
+            curl_multi_cleanup(multi_handle);
+
+            /* always cleanup */
+            curl_easy_cleanup(curl);
+
+            /* then cleanup the form */
+            curl_mime_free(form);
+
+            logTrc ("CURL FIN [chunks=%d, size=%ld]", cd.cnt, cd.size);
+            logTrc (cd.buf);
+
+            /* always cleanup */
+            curl_easy_cleanup(curl);
+            //
         }
+    } else {
+        snprintf(url, URL_SIZE, "%s%s/sendMessage", API_URL, API_KEY);
+        curl = curl_easy_init();
+        if(curl) {
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_HEADER, 0);
+            curl_easy_setopt(curl, CURLOPT_POST, 1);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, sz);
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &cd);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, report_write_chunk);
 
-        ret = curl_easy_perform(curl);
-        (void)ret;
-        logTrc ("CURL ret = %d [chunks=%d, size=%ld]", ret, cd.cnt, cd.size);
-        logTrc (cd.buf);
+            ret = curl_easy_perform(curl);
+            logTrc ("CURL ret = %d [chunks=%d, size=%ld]", ret, cd.cnt, cd.size);
+            logTrc (cd.buf);
 
-        /* always cleanup */
-        curl_easy_cleanup(curl);
-        if (fd) {
-            fclose(fd);
+            /* always cleanup */
+            curl_easy_cleanup(curl);
         }
 
     }

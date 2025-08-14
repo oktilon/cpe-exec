@@ -85,4 +85,5 @@ executable(
     include_directories : inc,
     dependencies        : deps,
     install             : true,
+    install_dir         : '/usr/bin'
 )
